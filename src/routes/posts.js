@@ -1,0 +1,103 @@
+import { Router } from "express";
+import { createStore } from "../lib/store.js";
+import { requireAdminAuth } from "../lib/adminAuth.js";
+
+const store = createStore("posts");
+const router = Router();
+
+function slugify(title) {
+  return title
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
+async function uniqueSlug(base, ignoreId = null) {
+  const all = await store.all();
+  let slug = base || "post";
+  let n = 2;
+  while (all.some((p) => p.slug === slug && p.id !== ignoreId)) {
+    slug = `${base}-${n++}`;
+  }
+  return slug;
+}
+
+// ── public ───────────────────────────────────────────────────────────────
+
+router.get("/", async (_req, res) => {
+  const all = await store.all();
+  const published = all.filter((p) => p.published).sort((a, b) => new Date(b.date) - new Date(a.date));
+  res.json(published);
+});
+
+router.get("/:slug", async (req, res) => {
+  const all = await store.all();
+  const post = all.find((p) => p.slug === req.params.slug && p.published);
+  if (!post) return res.status(404).json({ error: "Not found" });
+  res.json(post);
+});
+
+// ── admin ────────────────────────────────────────────────────────────────
+
+router.get("/admin/all", requireAdminAuth, async (_req, res) => {
+  const all = await store.all();
+  res.json(all.slice().sort((a, b) => new Date(b.receivedAt) - new Date(a.receivedAt)));
+});
+
+router.get("/admin/:id", requireAdminAuth, async (req, res) => {
+  const all = await store.all();
+  const post = all.find((p) => p.id === req.params.id);
+  if (!post) return res.status(404).json({ error: "Not found" });
+  res.json(post);
+});
+
+router.post("/admin", requireAdminAuth, async (req, res) => {
+  const { title, category, excerpt = "", sections = [], heroImage = null, published = false } = req.body ?? {};
+  if (!title?.trim()) return res.status(400).json({ error: "title is required." });
+
+  const slug = await uniqueSlug(slugify(title));
+  const record = await store.append({
+    title: title.trim(),
+    slug,
+    category: category || "Laws",
+    excerpt: excerpt.trim(),
+    heroImage,
+    sections,
+    date: new Date().toISOString(),
+    published: Boolean(published),
+    updatedAt: new Date().toISOString(),
+  });
+  res.status(201).json(record);
+});
+
+router.put("/admin/:id", requireAdminAuth, async (req, res) => {
+  const { title, category, excerpt, sections, heroImage, published } = req.body ?? {};
+  const all = await store.all();
+  const existing = all.find((p) => p.id === req.params.id);
+  if (!existing) return res.status(404).json({ error: "Not found" });
+
+  const patch = { updatedAt: new Date().toISOString() };
+  if (title !== undefined && title.trim() && title.trim() !== existing.title) {
+    patch.title = title.trim();
+    patch.slug = await uniqueSlug(slugify(title.trim()), existing.id);
+  } else if (title !== undefined) {
+    patch.title = title.trim();
+  }
+  if (category !== undefined) patch.category = category;
+  if (excerpt !== undefined) patch.excerpt = excerpt.trim();
+  if (sections !== undefined) patch.sections = sections;
+  if (heroImage !== undefined) patch.heroImage = heroImage;
+  if (published !== undefined) patch.published = Boolean(published);
+
+  const updated = await store.update(req.params.id, patch);
+  res.json(updated);
+});
+
+router.delete("/admin/:id", requireAdminAuth, async (req, res) => {
+  const removed = await store.remove(req.params.id);
+  if (!removed) return res.status(404).json({ error: "Not found" });
+  res.status(204).end();
+});
+
+export default router;

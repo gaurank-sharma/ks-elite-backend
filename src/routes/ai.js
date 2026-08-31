@@ -1,0 +1,118 @@
+import { Router } from "express";
+import { llmChat, LlmError } from "../lib/llm.js";
+import { requireAdminAuth } from "../lib/adminAuth.js";
+
+const router = Router();
+
+const CATEGORIES = ["Technology", "Inter-State Dispute", "Courts", "Laws", "Divorce"];
+
+const DRAFT_SYSTEM_PROMPT = `You are a legal content writer for K.S. Elite Attorneys, a Delhi-based Indian law firm. Write clear, accurate, engagement-friendly blog content about Indian law for a general audience — informative, not overly technical, no fabricated case citations or statistics.
+
+Respond with ONLY a JSON object shaped exactly like this:
+{
+  "title": "string, punchy and specific, under 100 characters",
+  "excerpt": "string, 1-2 sentences summarizing the piece",
+  "category": "one of: ${CATEGORIES.join(", ")}",
+  "sections": [
+    { "heading": "string or null", "paragraphs": ["string", "string"] }
+  ]
+}
+Produce 3-6 sections. The first section may omit its heading. Do not include markdown, HTML tags, or any text outside the JSON object.`;
+
+function sectionsToHtml(sections) {
+  if (!Array.isArray(sections)) return [];
+  return sections.map((s) => {
+    const heading = s?.heading ? `<h2>${escapeHtml(s.heading)}</h2>` : "";
+    const paragraphs = Array.isArray(s?.paragraphs) ? s.paragraphs : [];
+    const body = paragraphs.map((p) => `<p>${escapeHtml(String(p))}</p>`).join("");
+    return { text: heading + body, image: null };
+  });
+}
+
+function escapeHtml(str) {
+  return str.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+router.post("/draft", requireAdminAuth, async (req, res) => {
+  const { topic, notes = "" } = req.body ?? {};
+  if (!topic?.trim()) return res.status(400).json({ error: "topic is required." });
+
+  const userPrompt = `Topic: ${topic.trim()}${notes.trim() ? `\nAdditional notes / angle: ${notes.trim()}` : ""}`;
+
+  try {
+    const raw = await llmChat(
+      [
+        { role: "system", content: DRAFT_SYSTEM_PROMPT },
+        { role: "user", content: userPrompt },
+      ],
+      { temperature: 0.8, maxTokens: 2000, json: true }
+    );
+
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return res.status(502).json({ error: "The AI response wasn't valid JSON. Try again." });
+    }
+
+    if (!parsed.title || !parsed.category || !Array.isArray(parsed.sections)) {
+      return res.status(502).json({ error: "The AI response was missing required fields. Try again." });
+    }
+
+    res.json({
+      title: parsed.title,
+      excerpt: parsed.excerpt || "",
+      category: CATEGORIES.includes(parsed.category) ? parsed.category : CATEGORIES[0],
+      sections: sectionsToHtml(parsed.sections),
+    });
+  } catch (err) {
+    if (err instanceof LlmError) return res.status(err.status).json({ error: err.message });
+    console.error("AI draft error:", err);
+    res.status(500).json({ error: "Something went wrong generating the draft." });
+  }
+});
+
+const FIX_SYSTEM_PROMPT = `You are a copy editor for K.S. Elite Attorneys, a law firm blog CMS. You'll receive one content section — it may be plain text, partially-tagged HTML, or messy HTML with typos.
+
+Fix it:
+- Correct spelling, grammar, and punctuation mistakes.
+- Output valid HTML using only <p>, <h2>, <h3>, <ul>, <ol>, <li>, <strong>, <em> tags as appropriate.
+- If the input is plain text with no tags, wrap each paragraph in <p> tags (split on blank lines / natural paragraph breaks). If a short line reads like a heading, use <h2> or <h3>.
+- If the input already has valid tags, keep that structure and just fix the text and any malformed tags.
+- Do not add new claims, statistics, or content — only fix formatting and language. Do not shorten or summarize.
+
+Respond with ONLY a JSON object: { "html": "<the corrected HTML>" }`;
+
+router.post("/fix-section", requireAdminAuth, async (req, res) => {
+  const { html } = req.body ?? {};
+  if (!html?.trim()) return res.status(400).json({ error: "html is required." });
+
+  try {
+    const raw = await llmChat(
+      [
+        { role: "system", content: FIX_SYSTEM_PROMPT },
+        { role: "user", content: html.trim() },
+      ],
+      { temperature: 0.3, maxTokens: 2000, json: true }
+    );
+
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return res.status(502).json({ error: "The AI response wasn't valid JSON. Try again." });
+    }
+
+    if (typeof parsed.html !== "string" || !parsed.html.trim()) {
+      return res.status(502).json({ error: "The AI response was empty. Try again." });
+    }
+
+    res.json({ html: parsed.html });
+  } catch (err) {
+    if (err instanceof LlmError) return res.status(err.status).json({ error: err.message });
+    console.error("AI fix-section error:", err);
+    res.status(500).json({ error: "Something went wrong fixing this section." });
+  }
+});
+
+export default router;

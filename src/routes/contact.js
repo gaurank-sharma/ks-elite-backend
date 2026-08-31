@@ -1,0 +1,50 @@
+import { Router } from "express";
+import { createStore } from "../lib/store.js";
+import { notifyLead } from "../lib/mailer.js";
+import { requireAdminAuth } from "../lib/adminAuth.js";
+
+const store = createStore("contacts");
+const router = Router();
+
+router.post("/", async (req, res) => {
+  const { name, phone, matter = "", message } = req.body ?? {};
+
+  if (!name?.trim() || !phone?.trim() || !message?.trim()) {
+    return res.status(400).json({ error: "name, phone, and message are required." });
+  }
+
+  const record = await store.append({ name: name.trim(), phone: phone.trim(), matter: matter.trim(), message: message.trim(), status: "new" });
+
+  notifyLead(`New consultation request — ${record.name}`, [
+    `Name: ${record.name}`,
+    `Phone: ${record.phone}`,
+    `Matter: ${record.matter || "—"}`,
+    `Message: ${record.message}`,
+    `Received: ${record.receivedAt}`,
+  ]);
+
+  res.status(201).json({ ok: true, id: record.id });
+});
+
+router.get("/", requireAdminAuth, async (_req, res) => {
+  const all = await store.all();
+  res.json(all.slice().reverse());
+});
+
+router.patch("/:id", requireAdminAuth, async (req, res) => {
+  const { status } = req.body ?? {};
+  if (!["new", "contacted", "closed"].includes(status)) {
+    return res.status(400).json({ error: "status must be one of: new, contacted, closed" });
+  }
+  const updated = await store.update(req.params.id, { status });
+  if (!updated) return res.status(404).json({ error: "Not found" });
+  res.json(updated);
+});
+
+router.delete("/:id", requireAdminAuth, async (req, res) => {
+  const removed = await store.remove(req.params.id);
+  if (!removed) return res.status(404).json({ error: "Not found" });
+  res.status(204).end();
+});
+
+export default router;

@@ -1,0 +1,23 @@
+{
+  "name": "ks-elite-attorneys-server",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "@xmldom/xmldom": "^0.9.12",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "jsonwebtoken": "^9.0.3",
+    "jszip": "^3.10.1",
+    "mammoth": "^1.12.2",
+    "multer": "^2.3.0",
+    "nodemailer": "^9.0.6",
+    "pdf-parse": "^1.1.1"
+  }
+}
