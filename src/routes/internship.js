@@ -1,18 +1,46 @@
 import { Router } from "express";
+import multer from "multer";
+import pdfParse from "pdf-parse/lib/pdf-parse.js";
 import { createStore } from "../lib/store.js";
 import { notifyLead } from "../lib/mailer.js";
 import { requireAdminAuth } from "../lib/adminAuth.js";
+import { saveFile } from "../lib/uploads.js";
+import { analyzeResume } from "../lib/resumeAnalysis.js";
 
 const store = createStore("internships");
 const router = Router();
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 const REQUIRED_FIELDS = ["firstName", "surname", "college", "email", "contact", "gender", "dob", "month"];
 
-router.post("/", async (req, res) => {
+router.post("/", upload.single("resume"), async (req, res) => {
   const body = req.body ?? {};
   const missing = REQUIRED_FIELDS.filter((key) => !String(body[key] ?? "").trim());
   if (missing.length) {
     return res.status(400).json({ error: `Missing required fields: ${missing.join(", ")}` });
+  }
+
+  let resumeUrl = null;
+  let resumeText = "";
+  if (req.file) {
+    try {
+      resumeUrl = await saveFile(req.file.buffer, req.file.originalname || "resume.pdf", req.file.mimetype);
+      if (req.file.mimetype === "application/pdf" || req.file.originalname?.toLowerCase().endsWith(".pdf")) {
+        const parsed = await pdfParse(req.file.buffer);
+        resumeText = parsed.text || "";
+      }
+    } catch (err) {
+      console.error("Resume upload/parse failed:", err.message);
+    }
+  }
+
+  // Scored before saving, not after responding — Vercel can freeze a serverless
+  // function immediately once the response is sent, so "fire and forget after
+  // res.json()" would silently never run there. This adds real latency to the
+  // request instead (a few seconds for the LLM call), which is the correct trade.
+  let aiResult = null;
+  if (resumeText.trim()) {
+    aiResult = await analyzeResume({ resumeText, college: body.college.trim(), mode: (body.mode ?? "Offline").trim(), month: body.month.trim() });
   }
 
   const record = await store.append({
@@ -26,6 +54,10 @@ router.post("/", async (req, res) => {
     mode: (body.mode ?? "Offline").trim(),
     dob: body.dob.trim(),
     month: body.month.trim(),
+    resumeUrl,
+    aiScore: aiResult?.score ?? null,
+    aiVerdict: aiResult?.verdict ?? null,
+    aiSummary: aiResult?.summary ?? null,
     status: "new",
   });
 
@@ -38,8 +70,10 @@ router.post("/", async (req, res) => {
     `Mode: ${record.mode}`,
     `DOB: ${record.dob}`,
     `Preferred month: ${record.month}`,
+    `Resume: ${resumeUrl || "not provided"}`,
+    aiResult ? `AI assessment: ${aiResult.verdict} (${aiResult.score}/100) — ${aiResult.summary}` : null,
     `Received: ${record.receivedAt}`,
-  ]);
+  ].filter(Boolean));
 
   res.status(201).json({ ok: true, id: record.id });
 });

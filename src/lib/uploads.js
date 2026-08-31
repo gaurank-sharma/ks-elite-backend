@@ -8,6 +8,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Used for local-dev static serving only — irrelevant once BLOB_READ_WRITE_TOKEN
 // is set, since saveImageBuffer then returns absolute Vercel Blob URLs instead.
 export const UPLOADS_DIR = path.join(__dirname, "..", "..", "data", "uploads");
+export const FILES_DIR = path.join(__dirname, "..", "..", "data", "files");
 
 const EXT_BY_MIME = {
   "image/png": "png",
@@ -49,4 +50,21 @@ export async function saveImageBuffer(buffer, mimeOrExt) {
 
   imageCache.set(hash, url);
   return url;
+}
+
+// Same storage backend as saveImageBuffer but for arbitrary files (resumes, etc.)
+// — no extension inference, keeps the caller's filename, stored under files/.
+export async function saveFile(buffer, filename, contentType) {
+  const hash = crypto.createHash("sha1").update(buffer).digest("hex");
+  const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const key = `${hash}-${safeName}`;
+
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    const blob = await put(`files/${key}`, buffer, { access: "public", contentType });
+    return blob.url;
+  }
+
+  await fs.mkdir(FILES_DIR, { recursive: true });
+  await fs.writeFile(path.join(FILES_DIR, key), buffer);
+  return `/files/${key}`;
 }

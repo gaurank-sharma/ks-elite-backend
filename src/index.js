@@ -11,13 +11,14 @@ import parseDocRouter from "./routes/parseDoc.js";
 import uploadImageRouter from "./routes/uploadImage.js";
 import teamRouter from "./routes/team.js";
 import testimonialsRouter from "./routes/testimonials.js";
-import { UPLOADS_DIR } from "./lib/uploads.js";
+import { UPLOADS_DIR, FILES_DIR } from "./lib/uploads.js";
 
 const app = express();
 
 app.use(cors({ origin: process.env.CORS_ORIGIN?.split(",") ?? "*" }));
 app.use(express.json({ limit: "5mb" }));
 app.use("/uploads", express.static(UPLOADS_DIR));
+app.use("/files", express.static(FILES_DIR));
 
 app.get("/", (_req, res) => res.json({ ok: true, service: "KS Elite Attorneys API", status: "live" }));
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
