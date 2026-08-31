@@ -1,9 +1,17 @@
 import { Router } from "express";
 import { createStore } from "../lib/store.js";
 import { requireAdminAuth } from "../lib/adminAuth.js";
+import { invalidateSiteKnowledge } from "../lib/siteKnowledge.js";
 
 const store = createStore("posts");
 const router = Router();
+
+// Any write here changes what the chatbot should know — drop its cached
+// site-knowledge prompt so the next chat request picks up fresh data.
+router.use("/admin", (req, _res, next) => {
+  if (req.method !== "GET") invalidateSiteKnowledge();
+  next();
+});
 
 function slugify(title) {
   return title

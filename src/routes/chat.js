@@ -2,18 +2,14 @@ import { Router } from "express";
 import { llmChatRaw, LlmError } from "../lib/llm.js";
 import { createStore } from "../lib/store.js";
 import { notifyLead } from "../lib/mailer.js";
+import { getSiteKnowledge, getArticleBySlug } from "../lib/siteKnowledge.js";
 
 const router = Router();
 const contactStore = createStore("contacts");
 
-const SYSTEM_PROMPT = `You are the website assistant for K.S. Elite Attorneys, a law firm in Delhi, India.
+const SYSTEM_PROMPT_HEADER = `You are the website assistant for K.S. Elite Attorneys, a law firm in Delhi, India.
 
-Firm facts:
-- Practice areas: Bail, Cheque Bounce, Civil, Criminal, Family, Writ, Supreme Court & High Court matters, Tribunals, RTI, Corporate, Banking, Service Matters.
-- Offices: Kalkaji, Saket, and another Kalkaji location — all in Delhi.
-- Phone: +91 94670 45415. Email: support@kseliteattorneys.com. Consultations available 24/7.
-
-Your job: answer visitor questions about the firm, its practice areas, and general legal process/terminology in plain language. Be concise and warm, like a helpful front-desk paralegal.
+Your job: answer visitor questions about the firm, its people, its practice areas, its blog articles, and general legal process/terminology in plain language. Be concise and warm, like a helpful front-desk paralegal. Use the site knowledge below — it's the current, real state of the website, not general knowledge — to answer specifically rather than generically whenever it's relevant.
 
 You can also book a consultation appointment directly using the book_appointment tool:
 - Collect the visitor's full name and phone number at minimum — ask for both if missing.
@@ -21,11 +17,15 @@ You can also book a consultation appointment directly using the book_appointment
 - Once you have name and phone, call book_appointment. After it succeeds, confirm the booking to the visitor and let them know the team will call to confirm details.
 - If the tool reports an error, tell the visitor what's missing and ask for it.
 
+If a visitor asks something about a specific blog article that the summary below doesn't answer, call get_article_content with that article's slug to read the full piece before answering — don't guess at its contents.
+
 Rules:
 - Never give specific legal advice or predict case outcomes — general information only.
 - For anything specific to a visitor's situation, encourage them to book a consultation (via the tool, phone, or WhatsApp).
 - Keep replies short (2-4 sentences) unless the question needs more detail.
-- Plain text only — this renders in a chat bubble, not a document. Never use markdown (no **bold**, no #headings, no bullet/numbered lists, no backticks).`;
+- Plain text only — this renders in a chat bubble, not a document. Never use markdown (no **bold**, no #headings, no bullet/numbered lists, no backticks).
+
+--- SITE KNOWLEDGE (current as of this conversation) ---`;
 
 const TOOLS = [
   {
@@ -45,6 +45,18 @@ const TOOLS = [
           notes: { type: "string", description: "Any other relevant context worth passing to the team" },
         },
         required: ["name", "phone"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_article_content",
+      description: "Fetch the full text of a specific published blog article by its slug, for questions the article summary doesn't cover.",
+      parameters: {
+        type: "object",
+        properties: { slug: { type: "string", description: "The article's slug, from the site knowledge list" } },
+        required: ["slug"],
       },
     },
   },
@@ -88,6 +100,17 @@ async function bookAppointment(args) {
   return { ok: true, confirmationId: record.id };
 }
 
+async function runTool(name, args) {
+  if (name === "book_appointment") return bookAppointment(args);
+  if (name === "get_article_content") {
+    const slug = String(args?.slug ?? "").trim();
+    if (!slug) return { error: "No slug provided." };
+    const article = await getArticleBySlug(slug);
+    return article || { error: "No published article found with that slug." };
+  }
+  return { error: "Unknown tool." };
+}
+
 router.post("/", async (req, res) => {
   const { messages } = req.body ?? {};
 
@@ -104,9 +127,11 @@ router.post("/", async (req, res) => {
     return res.status(400).json({ error: "No valid messages provided." });
   }
 
-  const convo = [{ role: "system", content: SYSTEM_PROMPT }, ...cleaned];
-
   try {
+    const { prompt: siteKnowledge } = await getSiteKnowledge();
+    const systemPrompt = `${SYSTEM_PROMPT_HEADER}\n${siteKnowledge}`;
+    const convo = [{ role: "system", content: systemPrompt }, ...cleaned];
+
     let message = await llmChatRaw(convo, { temperature: 0.6, maxTokens: 500, tools: TOOLS });
     let rounds = 0;
 
@@ -117,7 +142,7 @@ router.post("/", async (req, res) => {
         let result;
         try {
           const args = JSON.parse(call.function.arguments || "{}");
-          result = call.function.name === "book_appointment" ? await bookAppointment(args) : { error: "Unknown tool." };
+          result = await runTool(call.function.name, args);
         } catch (err) {
           result = { error: `Failed to process: ${err.message}` };
         }

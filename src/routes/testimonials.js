@@ -1,9 +1,15 @@
 import { Router } from "express";
 import { createStore } from "../lib/store.js";
 import { requireAdminAuth } from "../lib/adminAuth.js";
+import { invalidateSiteKnowledge } from "../lib/siteKnowledge.js";
 
 const store = createStore("testimonials");
 const router = Router();
+
+router.use("/admin", (req, _res, next) => {
+  if (req.method !== "GET") invalidateSiteKnowledge();
+  next();
+});
 
 // ── public ───────────────────────────────────────────────────────────────
 
