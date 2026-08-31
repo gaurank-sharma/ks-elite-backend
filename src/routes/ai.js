@@ -14,10 +14,16 @@ Respond with ONLY a JSON object shaped exactly like this:
   "excerpt": "string, 1-2 sentences summarizing the piece",
   "category": "one of: ${CATEGORIES.join(", ")}",
   "sections": [
-    { "heading": "string or null", "paragraphs": ["string", "string"] }
+    { "heading": "string or null", "paragraphs": ["string", "string"], "list": ["string", "string"] or null }
   ]
 }
-Produce 3-6 sections. The first section may omit its heading. Do not include markdown, HTML tags, or any text outside the JSON object.`;
+Produce 3-6 sections. The first section may omit its heading.
+
+Formatting rules — this gets inserted into HTML by the server, not rendered as markdown:
+- Never use markdown syntax anywhere (no **, no #, no backticks, no "1." or "-" prefixes).
+- Each "paragraphs" entry must be ONE clean paragraph of flowing prose — no embedded line breaks, no numbering.
+- If a section naturally has a list of items (types, conditions, steps), put those items in the optional "list" array instead — one item's plain text per array entry, no numbering or bullet characters (numbering is added automatically).
+- Do not include markdown or HTML tags inside any string value.`;
 
 function sectionsToHtml(sections) {
   if (!Array.isArray(sections)) return [];
@@ -25,7 +31,10 @@ function sectionsToHtml(sections) {
     const heading = s?.heading ? `<h2>${escapeHtml(s.heading)}</h2>` : "";
     const paragraphs = Array.isArray(s?.paragraphs) ? s.paragraphs : [];
     const body = paragraphs.map((p) => `<p>${escapeHtml(String(p))}</p>`).join("");
-    return { text: heading + body, image: null };
+    const list = Array.isArray(s?.list) && s.list.length
+      ? `<ul>${s.list.map((li) => `<li>${escapeHtml(String(li))}</li>`).join("")}</ul>`
+      : "";
+    return { text: heading + body + list, image: null };
   });
 }
 
