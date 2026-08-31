@@ -2,12 +2,12 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
+import { put } from "@vercel/blob";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-// See the same /tmp caveat in store.js — not persistent on Vercel.
-export const UPLOADS_DIR = process.env.VERCEL
-  ? "/tmp/data/uploads"
-  : path.join(__dirname, "..", "..", "data", "uploads");
+// Used for local-dev static serving only — irrelevant once BLOB_READ_WRITE_TOKEN
+// is set, since saveImageBuffer then returns absolute Vercel Blob URLs instead.
+export const UPLOADS_DIR = path.join(__dirname, "..", "..", "data", "uploads");
 
 const EXT_BY_MIME = {
   "image/png": "png",
@@ -27,18 +27,26 @@ function extFromMimeOrPath(mimeOrExt = "") {
 
 const imageCache = new Map();
 
-// Saves a Buffer to disk under a content-hash filename (dedupes identical images
-// within a process run) and returns the public URL path to serve it from.
+// Saves a Buffer and returns the public URL to serve it from. Uses Vercel Blob
+// when configured (persists across serverless instances); falls back to local
+// disk for local dev, where a single process/filesystem is all that's needed.
 export async function saveImageBuffer(buffer, mimeOrExt) {
   const hash = crypto.createHash("sha1").update(buffer).digest("hex");
   if (imageCache.has(hash)) return imageCache.get(hash);
 
   const ext = extFromMimeOrPath(mimeOrExt);
   const filename = `${hash}.${ext}`;
-  await fs.mkdir(UPLOADS_DIR, { recursive: true });
-  await fs.writeFile(path.join(UPLOADS_DIR, filename), buffer);
 
-  const url = `/uploads/${filename}`;
+  let url;
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    const blob = await put(`uploads/${filename}`, buffer, { access: "public" });
+    url = blob.url;
+  } else {
+    await fs.mkdir(UPLOADS_DIR, { recursive: true });
+    await fs.writeFile(path.join(UPLOADS_DIR, filename), buffer);
+    url = `/uploads/${filename}`;
+  }
+
   imageCache.set(hash, url);
   return url;
 }
