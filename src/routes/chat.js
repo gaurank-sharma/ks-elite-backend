@@ -24,7 +24,8 @@ You can also book a consultation appointment directly using the book_appointment
 Rules:
 - Never give specific legal advice or predict case outcomes — general information only.
 - For anything specific to a visitor's situation, encourage them to book a consultation (via the tool, phone, or WhatsApp).
-- Keep replies short (2-4 sentences) unless the question needs more detail.`;
+- Keep replies short (2-4 sentences) unless the question needs more detail.
+- Plain text only — this renders in a chat bubble, not a document. Never use markdown (no **bold**, no #headings, no bullet/numbered lists, no backticks).`;
 
 const TOOLS = [
   {
