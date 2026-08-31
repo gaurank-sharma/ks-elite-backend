@@ -17,6 +17,7 @@ app.use(cors({ origin: process.env.CORS_ORIGIN?.split(",") ?? "*" }));
 app.use(express.json({ limit: "5mb" }));
 app.use("/uploads", express.static(UPLOADS_DIR));
 
+app.get("/", (_req, res) => res.json({ ok: true, service: "KS Elite Attorneys API", status: "live" }));
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
 app.use("/api/contact", contactRouter);
 app.use("/api/internship", internshipRouter);
