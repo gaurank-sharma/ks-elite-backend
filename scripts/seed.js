@@ -38,7 +38,7 @@ const TESTIMONIALS = [
   {
     name: "Jindal Fincap Limited",
     role: "Non-Banking Financial Institution",
-    quote: "K.S. Elite Attorneys brought precision and clarity to complex financial disputes, protecting our interests at every stage.",
+    quote: "Sharma & Associates brought precision and clarity to complex financial disputes, protecting our interests at every stage.",
     order: 0,
   },
   {

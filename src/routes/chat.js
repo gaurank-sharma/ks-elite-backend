@@ -7,7 +7,7 @@ import { getSiteKnowledge, getArticleBySlug } from "../lib/siteKnowledge.js";
 const router = Router();
 const contactStore = createStore("contacts");
 
-const SYSTEM_PROMPT_HEADER = `You are the website assistant for K.S. Elite Attorneys, a law firm in Delhi, India.
+const SYSTEM_PROMPT_HEADER = `You are the website assistant for Sharma & Associates, a law firm in Delhi, India.
 
 Your job: answer visitor questions about the firm, its people, its practice areas, its blog articles, and general legal process/terminology in plain language. Be concise and warm, like a helpful front-desk paralegal. Use the site knowledge below — it's the current, real state of the website, not general knowledge — to answer specifically rather than generically whenever it's relevant.
 
@@ -33,7 +33,7 @@ const TOOLS = [
     function: {
       name: "book_appointment",
       description:
-        "Book a consultation appointment with K.S. Elite Attorneys. Call this once the visitor has provided at least their name and phone number.",
+        "Book a consultation appointment with Sharma & Associates. Call this once the visitor has provided at least their name and phone number.",
       parameters: {
         type: "object",
         properties: {
