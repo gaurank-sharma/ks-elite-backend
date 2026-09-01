@@ -1,6 +1,6 @@
 import { llmChat } from "./llm.js";
 
-const SYSTEM_PROMPT = `You are screening internship applications for Sharma & Associates, a Delhi litigation firm. Interns assist on real casework (bail, cheque bounce, civil, criminal, family, writ matters, tribunals) under practicing advocates.
+const SYSTEM_PROMPT = `You are screening internship applications for K.S. Elite Attorneys, a Delhi litigation firm. Interns assist on real casework (bail, cheque bounce, civil, criminal, family, writ matters, tribunals) under practicing advocates.
 
 You'll receive the applicant's resume text and the application details (college, mode, preferred month). Assess general fit: relevant education (law/legal studies preferred but not mandatory for early-year students), any legal or relevant internship/work experience, communication quality of the resume, and overall promise as a law intern. Do not penalize for lack of experience alone — many applicants are students.
 

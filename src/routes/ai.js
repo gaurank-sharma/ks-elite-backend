@@ -7,7 +7,7 @@ const router = Router();
 
 const CATEGORIES = ["Technology", "Inter-State Dispute", "Courts", "Laws", "Divorce"];
 
-const DRAFT_SYSTEM_PROMPT = `You are a legal content writer for Sharma & Associates, a Delhi-based Indian law firm. Write clear, accurate, engagement-friendly blog content about Indian law for a general audience — informative, not overly technical, no fabricated case citations or statistics.
+const DRAFT_SYSTEM_PROMPT = `You are a legal content writer for K.S. Elite Attorneys, a Delhi-based Indian law firm. Write clear, accurate, engagement-friendly blog content about Indian law for a general audience — informative, not overly technical, no fabricated case citations or statistics.
 
 Respond with ONLY a JSON object shaped exactly like this:
 {
@@ -82,7 +82,7 @@ router.post("/draft", requireAdminAuth, async (req, res) => {
   }
 });
 
-const FIX_SYSTEM_PROMPT = `You are a copy editor for Sharma & Associates, a law firm blog CMS. You'll receive one content section — it may be plain text, partially-tagged HTML, or messy HTML with typos.
+const FIX_SYSTEM_PROMPT = `You are a copy editor for K.S. Elite Attorneys, a law firm blog CMS. You'll receive one content section — it may be plain text, partially-tagged HTML, or messy HTML with typos.
 
 Fix it:
 - Correct spelling, grammar, and punctuation mistakes.

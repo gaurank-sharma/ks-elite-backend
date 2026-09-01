@@ -9,7 +9,7 @@ const postsStore = createStore("posts");
 // truth for each block is noted below; if that page's copy changes, update here too.
 
 // frontend/src/pages/About.jsx
-const FIRM_STORY = `Sharma & Associates is a premier litigation firm headquartered in New Delhi, built on 24+ years of courtroom experience and a client-first philosophy.
+const FIRM_STORY = `K.S. Elite Attorneys (legal name: Sharma & Associates) is a premier litigation firm headquartered in New Delhi, built on 24+ years of courtroom experience and a client-first philosophy.
 
 Founder: Mr. K.S. Sharma. An advocate before the Supreme Court of India, multiple High Courts, District Courts, and Tribunals across Delhi, Haryana, and other jurisdictions. Practice spans criminal law, banking & financial disputes, corporate and commercial law, arbitration, civil litigation, and matrimonial & family law. Head — Dispute Resolution, Criminal Litigation Specialist. Law graduate, Lucknow University. His leadership is collaborative, solution-oriented, and client-focused. His own words: "My goal is not merely to win cases but to protect rights, resolve disputes efficiently, and support my clients through their most challenging legal battles."
 

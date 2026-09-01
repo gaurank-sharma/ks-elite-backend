@@ -20,7 +20,7 @@ app.use(express.json({ limit: "5mb" }));
 app.use("/uploads", express.static(UPLOADS_DIR));
 app.use("/files", express.static(FILES_DIR));
 
-app.get("/", (_req, res) => res.json({ ok: true, service: "Sharma & Associates API", status: "live" }));
+app.get("/", (_req, res) => res.json({ ok: true, service: "KS Elite Attorneys API", status: "live" }));
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
 app.use("/api/contact", contactRouter);
 app.use("/api/internship", internshipRouter);
@@ -44,7 +44,7 @@ app.use((err, _req, res, _next) => {
 if (!process.env.VERCEL) {
   const port = process.env.PORT || 4000;
   app.listen(port, () => {
-    console.log(`Sharma & Associates API listening on http://localhost:${port}`);
+    console.log(`KS Elite Attorneys API listening on http://localhost:${port}`);
   });
 }
 
