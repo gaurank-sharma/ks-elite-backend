@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { llmChat, LlmError } from "../lib/llm.js";
 import { requireAdminAuth } from "../lib/adminAuth.js";
+import { suggestHeroImages } from "../lib/imageSearch.js";
 
 const router = Router();
 
@@ -121,6 +122,21 @@ router.post("/fix-section", requireAdminAuth, async (req, res) => {
     if (err instanceof LlmError) return res.status(err.status).json({ error: err.message });
     console.error("AI fix-section error:", err);
     res.status(500).json({ error: "Something went wrong fixing this section." });
+  }
+});
+
+router.post("/suggest-images", requireAdminAuth, async (req, res) => {
+  const { title, category = "", excerpt = "" } = req.body ?? {};
+  if (!title?.trim()) return res.status(400).json({ error: "title is required." });
+
+  try {
+    const { query, results } = await suggestHeroImages({ title: title.trim(), category, excerpt });
+    if (results.length === 0) return res.status(404).json({ error: `No images found for "${query}". Try adjusting the title/excerpt.` });
+    res.json({ query, results });
+  } catch (err) {
+    if (err instanceof LlmError) return res.status(err.status).json({ error: err.message });
+    console.error("Image suggestion error:", err);
+    res.status(500).json({ error: "Something went wrong finding images." });
   }
 });
 
