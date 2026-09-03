@@ -67,7 +67,7 @@ router.post("/", upload.single("resume"), async (req, res) => {
     `Email: ${record.email}`,
     `Contact: ${record.contact}`,
     `Gender: ${record.gender}`,
-    `Mode: ${record.mode}`,
+    `Mode of Internship: ${record.mode}`,
     `DOB: ${record.dob}`,
     `Preferred month: ${record.month}`,
     `Resume: ${resumeUrl || "not provided"}`,

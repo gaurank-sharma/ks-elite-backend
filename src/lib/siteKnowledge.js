@@ -31,7 +31,7 @@ LinkedIn: linkedin.com/company/ks-elite-attorneys.
 Per Bar Council of India rules, advocates may not solicit work or advertise — the website and this chat are for informational/educational purposes only, don't create an advocate-client relationship, and nothing here is legal advice.`;
 
 // frontend/src/pages/Internship.jsx
-const INTERNSHIP_INFO = `Internship program: interns assist on real, live matters before the Delhi High Court and subordinate courts; work directly under advocates with 6–30 years of courtroom experience; offline or online mode available to fit a college schedule. Applications are via the /internship page (name, college, contact details, preferred month, optional resume upload).`;
+const INTERNSHIP_INFO = `Internship program: interns assist on real, live matters before the Delhi High Court and subordinate courts; work directly under advocates with 6–30 years of courtroom experience; offline, online, or hybrid mode of internship available to fit a college schedule. Applications are via the /internship page (name, college, contact details, preferred month, optional resume upload).`;
 
 let cache = null;
 let cacheAt = 0;

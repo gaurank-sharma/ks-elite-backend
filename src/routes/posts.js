@@ -61,7 +61,16 @@ router.get("/admin/:id", requirePermission("posts"), async (req, res) => {
 });
 
 router.post("/admin", requirePermission("posts"), async (req, res) => {
-  const { title, category, excerpt = "", sections = [], heroImage = null, published = false } = req.body ?? {};
+  const {
+    title,
+    category,
+    excerpt = "",
+    sections = [],
+    heroImage = null,
+    published = false,
+    authorName = "",
+    authorLinkedIn = "",
+  } = req.body ?? {};
   if (!title?.trim()) return res.status(400).json({ error: "title is required." });
 
   const slug = await uniqueSlug(slugify(title));
@@ -72,6 +81,8 @@ router.post("/admin", requirePermission("posts"), async (req, res) => {
     excerpt: excerpt.trim(),
     heroImage,
     sections,
+    authorName: authorName.trim(),
+    authorLinkedIn: authorLinkedIn.trim(),
     date: new Date().toISOString(),
     published: Boolean(published),
     updatedAt: new Date().toISOString(),
@@ -80,7 +91,7 @@ router.post("/admin", requirePermission("posts"), async (req, res) => {
 });
 
 router.put("/admin/:id", requirePermission("posts"), async (req, res) => {
-  const { title, category, excerpt, sections, heroImage, published } = req.body ?? {};
+  const { title, category, excerpt, sections, heroImage, published, authorName, authorLinkedIn } = req.body ?? {};
   const all = await store.all();
   const existing = all.find((p) => p.id === req.params.id);
   if (!existing) return res.status(404).json({ error: "Not found" });
@@ -97,6 +108,8 @@ router.put("/admin/:id", requirePermission("posts"), async (req, res) => {
   if (sections !== undefined) patch.sections = sections;
   if (heroImage !== undefined) patch.heroImage = heroImage;
   if (published !== undefined) patch.published = Boolean(published);
+  if (authorName !== undefined) patch.authorName = authorName.trim();
+  if (authorLinkedIn !== undefined) patch.authorLinkedIn = authorLinkedIn.trim();
 
   const updated = await store.update(req.params.id, patch);
   res.json(updated);

@@ -14,7 +14,7 @@ Respond with ONLY a JSON object:
 // Best-effort — a resume that fails to parse or an LLM call that fails should
 // never block the application itself from being saved.
 export async function analyzeResume({ resumeText, college, mode, month }) {
-  const userPrompt = `College: ${college}\nMode: ${mode}\nPreferred month: ${month}\n\nResume text:\n${(resumeText || "(no resume text extracted)").slice(0, 8000)}`;
+  const userPrompt = `College: ${college}\nMode of Internship: ${mode}\nPreferred month: ${month}\n\nResume text:\n${(resumeText || "(no resume text extracted)").slice(0, 8000)}`;
 
   try {
     const raw = await llmChat(
