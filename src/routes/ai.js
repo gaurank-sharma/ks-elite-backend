@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { llmChat, LlmError } from "../lib/llm.js";
-import { requireAdminAuth } from "../lib/adminAuth.js";
+import { requirePermission } from "../lib/adminAuth.js";
 import { suggestHeroImages } from "../lib/imageSearch.js";
 
 const router = Router();
@@ -43,7 +43,7 @@ function escapeHtml(str) {
   return str.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 
-router.post("/draft", requireAdminAuth, async (req, res) => {
+router.post("/draft", requirePermission("posts"), async (req, res) => {
   const { topic, notes = "" } = req.body ?? {};
   if (!topic?.trim()) return res.status(400).json({ error: "topic is required." });
 
@@ -93,7 +93,7 @@ Fix it:
 
 Respond with ONLY a JSON object: { "html": "<the corrected HTML>" }`;
 
-router.post("/fix-section", requireAdminAuth, async (req, res) => {
+router.post("/fix-section", requirePermission("posts"), async (req, res) => {
   const { html } = req.body ?? {};
   if (!html?.trim()) return res.status(400).json({ error: "html is required." });
 
@@ -125,7 +125,7 @@ router.post("/fix-section", requireAdminAuth, async (req, res) => {
   }
 });
 
-router.post("/suggest-images", requireAdminAuth, async (req, res) => {
+router.post("/suggest-images", requirePermission("posts"), async (req, res) => {
   const { title, category = "", excerpt = "" } = req.body ?? {};
   if (!title?.trim()) return res.status(400).json({ error: "title is required." });
 

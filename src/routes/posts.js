@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { createStore } from "../lib/store.js";
-import { requireAdminAuth } from "../lib/adminAuth.js";
+import { requirePermission } from "../lib/adminAuth.js";
 import { invalidateSiteKnowledge } from "../lib/siteKnowledge.js";
 
 const store = createStore("posts");
@@ -48,19 +48,19 @@ router.get("/:slug", async (req, res) => {
 
 // ── admin ────────────────────────────────────────────────────────────────
 
-router.get("/admin/all", requireAdminAuth, async (_req, res) => {
+router.get("/admin/all", requirePermission("posts"), async (_req, res) => {
   const all = await store.all();
   res.json(all.slice().sort((a, b) => new Date(b.receivedAt) - new Date(a.receivedAt)));
 });
 
-router.get("/admin/:id", requireAdminAuth, async (req, res) => {
+router.get("/admin/:id", requirePermission("posts"), async (req, res) => {
   const all = await store.all();
   const post = all.find((p) => p.id === req.params.id);
   if (!post) return res.status(404).json({ error: "Not found" });
   res.json(post);
 });
 
-router.post("/admin", requireAdminAuth, async (req, res) => {
+router.post("/admin", requirePermission("posts"), async (req, res) => {
   const { title, category, excerpt = "", sections = [], heroImage = null, published = false } = req.body ?? {};
   if (!title?.trim()) return res.status(400).json({ error: "title is required." });
 
@@ -79,7 +79,7 @@ router.post("/admin", requireAdminAuth, async (req, res) => {
   res.status(201).json(record);
 });
 
-router.put("/admin/:id", requireAdminAuth, async (req, res) => {
+router.put("/admin/:id", requirePermission("posts"), async (req, res) => {
   const { title, category, excerpt, sections, heroImage, published } = req.body ?? {};
   const all = await store.all();
   const existing = all.find((p) => p.id === req.params.id);
@@ -102,7 +102,7 @@ router.put("/admin/:id", requireAdminAuth, async (req, res) => {
   res.json(updated);
 });
 
-router.delete("/admin/:id", requireAdminAuth, async (req, res) => {
+router.delete("/admin/:id", requirePermission("posts"), async (req, res) => {
   const removed = await store.remove(req.params.id);
   if (!removed) return res.status(404).json({ error: "Not found" });
   res.status(204).end();

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { createStore } from "../lib/store.js";
-import { requireAdminAuth } from "../lib/adminAuth.js";
+import { requirePermission } from "../lib/adminAuth.js";
 import { invalidateSiteKnowledge } from "../lib/siteKnowledge.js";
 
 const store = createStore("team");
@@ -20,19 +20,19 @@ router.get("/", async (_req, res) => {
 
 // ── admin ────────────────────────────────────────────────────────────────
 
-router.get("/admin/all", requireAdminAuth, async (_req, res) => {
+router.get("/admin/all", requirePermission("team"), async (_req, res) => {
   const all = await store.all();
   res.json(all.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)));
 });
 
-router.get("/admin/:id", requireAdminAuth, async (req, res) => {
+router.get("/admin/:id", requirePermission("team"), async (req, res) => {
   const all = await store.all();
   const member = all.find((m) => m.id === req.params.id);
   if (!member) return res.status(404).json({ error: "Not found" });
   res.json(member);
 });
 
-router.post("/admin", requireAdminAuth, async (req, res) => {
+router.post("/admin", requirePermission("team"), async (req, res) => {
   const { name, title, exp, education, bio, tags = [], image = null, order = 0 } = req.body ?? {};
   if (!name?.trim()) return res.status(400).json({ error: "name is required." });
 
@@ -49,7 +49,7 @@ router.post("/admin", requireAdminAuth, async (req, res) => {
   res.status(201).json(record);
 });
 
-router.put("/admin/:id", requireAdminAuth, async (req, res) => {
+router.put("/admin/:id", requirePermission("team"), async (req, res) => {
   const { name, title, exp, education, bio, tags, image, order } = req.body ?? {};
   const patch = {};
   if (name !== undefined) patch.name = name.trim();
@@ -66,7 +66,7 @@ router.put("/admin/:id", requireAdminAuth, async (req, res) => {
   res.json(updated);
 });
 
-router.delete("/admin/:id", requireAdminAuth, async (req, res) => {
+router.delete("/admin/:id", requirePermission("team"), async (req, res) => {
   const removed = await store.remove(req.params.id);
   if (!removed) return res.status(404).json({ error: "Not found" });
   res.status(204).end();

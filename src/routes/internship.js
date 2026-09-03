@@ -3,7 +3,7 @@ import multer from "multer";
 import pdfParse from "pdf-parse/lib/pdf-parse.js";
 import { createStore } from "../lib/store.js";
 import { notifyLead } from "../lib/mailer.js";
-import { requireAdminAuth } from "../lib/adminAuth.js";
+import { requirePermission } from "../lib/adminAuth.js";
 import { saveFile } from "../lib/uploads.js";
 import { analyzeResume } from "../lib/resumeAnalysis.js";
 
@@ -78,12 +78,12 @@ router.post("/", upload.single("resume"), async (req, res) => {
   res.status(201).json({ ok: true, id: record.id });
 });
 
-router.get("/", requireAdminAuth, async (_req, res) => {
+router.get("/", requirePermission("leads_internship"), async (_req, res) => {
   const all = await store.all();
   res.json(all.slice().reverse());
 });
 
-router.patch("/:id", requireAdminAuth, async (req, res) => {
+router.patch("/:id", requirePermission("leads_internship"), async (req, res) => {
   const { status } = req.body ?? {};
   if (!["new", "contacted", "closed"].includes(status)) {
     return res.status(400).json({ error: "status must be one of: new, contacted, closed" });
@@ -93,7 +93,7 @@ router.patch("/:id", requireAdminAuth, async (req, res) => {
   res.json(updated);
 });
 
-router.delete("/:id", requireAdminAuth, async (req, res) => {
+router.delete("/:id", requirePermission("leads_internship"), async (req, res) => {
   const removed = await store.remove(req.params.id);
   if (!removed) return res.status(404).json({ error: "Not found" });
   res.status(204).end();

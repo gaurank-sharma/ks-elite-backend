@@ -5,7 +5,7 @@ import pdfParse from "pdf-parse/lib/pdf-parse.js";
 import JSZip from "jszip";
 import { DOMParser } from "@xmldom/xmldom";
 import { saveImageBuffer } from "../lib/uploads.js";
-import { requireAdminAuth } from "../lib/adminAuth.js";
+import { requirePermission } from "../lib/adminAuth.js";
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 30 * 1024 * 1024 } });
@@ -839,7 +839,7 @@ async function parsePptx(buffer) {
 
 // ─── route ──────────────────────────────────────────────────────────────────
 
-router.post("/", requireAdminAuth, upload.single("file"), async (req, res) => {
+router.post("/", requirePermission("posts"), upload.single("file"), async (req, res) => {
   try {
     const file = req.file;
     if (!file) return res.status(400).json({ msg: "No file provided" });
