@@ -12,6 +12,8 @@ import uploadImageRouter from "./routes/uploadImage.js";
 import teamRouter from "./routes/team.js";
 import testimonialsRouter from "./routes/testimonials.js";
 import subscribersRouter from "./routes/subscribers.js";
+import casesRouter from "./routes/cases.js";
+import uploadFileRouter from "./routes/uploadFile.js";
 import { UPLOADS_DIR, FILES_DIR } from "./lib/uploads.js";
 
 const app = express();
@@ -34,6 +36,8 @@ app.use("/api/admin/upload-image", uploadImageRouter);
 app.use("/api/team", teamRouter);
 app.use("/api/testimonials", testimonialsRouter);
 app.use("/api/subscribers", subscribersRouter);
+app.use("/api/cases", casesRouter);
+app.use("/api/admin/upload-file", uploadFileRouter);
 
 app.use((err, _req, res, _next) => {
   console.error(err);

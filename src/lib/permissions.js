@@ -4,6 +4,7 @@
 export const SECTIONS = [
   { key: "leads_contact", label: "Consultation Leads" },
   { key: "leads_internship", label: "Internship Applications" },
+  { key: "cases", label: "Case Management" },
   { key: "posts", label: "Blog Posts" },
   { key: "team", label: "Team" },
   { key: "testimonials", label: "Testimonials" },
