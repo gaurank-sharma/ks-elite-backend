@@ -33,7 +33,7 @@ router.get("/admin/:id", requirePermission("testimonials"), async (req, res) => 
 });
 
 router.post("/admin", requirePermission("testimonials"), async (req, res) => {
-  const { name, role = "", quote, order = 0 } = req.body ?? {};
+  const { name, role = "", quote, order = 0, rating = 5, image = null } = req.body ?? {};
   if (!name?.trim() || !quote?.trim()) return res.status(400).json({ error: "name and quote are required." });
 
   const record = await store.append({
@@ -41,17 +41,21 @@ router.post("/admin", requirePermission("testimonials"), async (req, res) => {
     role: role.trim(),
     quote: quote.trim(),
     order: Number(order) || 0,
+    rating: Math.min(5, Math.max(1, Number(rating) || 5)),
+    image,
   });
   res.status(201).json(record);
 });
 
 router.put("/admin/:id", requirePermission("testimonials"), async (req, res) => {
-  const { name, role, quote, order } = req.body ?? {};
+  const { name, role, quote, order, rating, image } = req.body ?? {};
   const patch = {};
   if (name !== undefined) patch.name = name.trim();
   if (role !== undefined) patch.role = role.trim();
   if (quote !== undefined) patch.quote = quote.trim();
   if (order !== undefined) patch.order = Number(order) || 0;
+  if (rating !== undefined) patch.rating = Math.min(5, Math.max(1, Number(rating) || 5));
+  if (image !== undefined) patch.image = image;
 
   const updated = await store.update(req.params.id, patch);
   if (!updated) return res.status(404).json({ error: "Not found" });

@@ -1,7 +1,8 @@
 import { Router } from "express";
 import { llmChat, LlmError } from "../lib/llm.js";
-import { requirePermission } from "../lib/adminAuth.js";
+import { requirePermission, requireAdminAuth } from "../lib/adminAuth.js";
 import { suggestHeroImages } from "../lib/imageSearch.js";
+import { SECTIONS } from "../lib/permissions.js";
 
 const router = Router();
 
@@ -122,6 +123,35 @@ router.post("/fix-section", requirePermission("posts"), async (req, res) => {
     if (err instanceof LlmError) return res.status(err.status).json({ error: err.message });
     console.error("AI fix-section error:", err);
     res.status(500).json({ error: "Something went wrong fixing this section." });
+  }
+});
+
+const GREETING_SYSTEM_PROMPT = `You write a single short, warm welcome message (one sentence, max ~22 words, no markdown, no emoji) for a staff member logging into the K.S. Elite Attorneys law firm admin dashboard. Greet them by name, reference the time of day, and mention — naturally, not as a list — what they manage in the dashboard. Vary your phrasing each time; don't sound like a template.`;
+
+// Best-effort — an AI-down moment should never block someone from seeing
+// their dashboard, so this always resolves with something to show.
+router.post("/greeting", requireAdminAuth, async (req, res) => {
+  const label = req.admin.label || req.admin.email || "there";
+  const permissions = req.admin.permissions || [];
+  const sections = permissions.includes("*")
+    ? "everything — leads, blog posts, team, testimonials, subscribers, and analytics"
+    : SECTIONS.filter((s) => permissions.includes(s.key)).map((s) => s.label).join(", ") || "the dashboard";
+
+  const istHour = (new Date().getUTCHours() + 5) % 24; // UTC+5:30, minutes don't affect the bucket
+  const timeOfDay = istHour < 12 ? "morning" : istHour < 17 ? "afternoon" : "evening";
+  const fallback = `Good ${timeOfDay}, ${label} — here's what's waiting for you in ${sections}.`;
+
+  try {
+    const raw = await llmChat(
+      [
+        { role: "system", content: GREETING_SYSTEM_PROMPT },
+        { role: "user", content: `Name: ${label}\nTime of day: ${timeOfDay}\nThey manage: ${sections}` },
+      ],
+      { temperature: 0.9, maxTokens: 120 }
+    );
+    res.json({ greeting: raw.trim() || fallback });
+  } catch (err) {
+    res.json({ greeting: fallback });
   }
 });
 
