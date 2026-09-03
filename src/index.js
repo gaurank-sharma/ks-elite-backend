@@ -14,6 +14,7 @@ import testimonialsRouter from "./routes/testimonials.js";
 import subscribersRouter from "./routes/subscribers.js";
 import casesRouter from "./routes/cases.js";
 import uploadFileRouter from "./routes/uploadFile.js";
+import analyticsRouter from "./routes/analytics.js";
 import { UPLOADS_DIR, FILES_DIR } from "./lib/uploads.js";
 
 const app = express();
@@ -38,6 +39,7 @@ app.use("/api/testimonials", testimonialsRouter);
 app.use("/api/subscribers", subscribersRouter);
 app.use("/api/cases", casesRouter);
 app.use("/api/admin/upload-file", uploadFileRouter);
+app.use("/api/admin/analytics", analyticsRouter);
 
 app.use((err, _req, res, _next) => {
   console.error(err);
