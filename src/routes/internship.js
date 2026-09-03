@@ -78,9 +78,10 @@ router.post("/", upload.single("resume"), async (req, res) => {
   res.status(201).json({ ok: true, id: record.id });
 });
 
-router.get("/", requirePermission("leads_internship"), async (_req, res) => {
-  const all = await store.all();
-  res.json(all.slice().reverse());
+router.get("/", requirePermission("leads_internship"), async (req, res) => {
+  const page = Math.max(1, Number(req.query.page) || 1);
+  const limit = Math.min(200, Math.max(1, Number(req.query.limit) || 50));
+  res.json(await store.paginate({ page, limit }));
 });
 
 router.patch("/:id", requirePermission("leads_internship"), async (req, res) => {

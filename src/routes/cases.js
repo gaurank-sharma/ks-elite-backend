@@ -10,9 +10,19 @@ async function nextCaseNumber() {
   return all.reduce((max, c) => Math.max(max, c.caseNumber || 0), 0) + 1;
 }
 
-router.get("/admin/all", requirePermission("cases"), async (_req, res) => {
-  const all = await store.all();
-  res.json(all.slice().sort((a, b) => (b.caseNumber || 0) - (a.caseNumber || 0)));
+router.get("/admin/all", requirePermission("cases"), async (req, res) => {
+  const page = Math.max(1, Number(req.query.page) || 1);
+  const limit = Math.min(200, Math.max(1, Number(req.query.limit) || 50));
+
+  const filter = {};
+  if (req.query.name?.trim()) {
+    filter.caseName = { $regex: req.query.name.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), $options: "i" };
+  }
+  if (req.query.nextDate?.trim()) {
+    filter.nextDate = req.query.nextDate.trim();
+  }
+
+  res.json(await store.paginate({ page, limit, filter }));
 });
 
 router.get("/admin/:id", requirePermission("cases"), async (req, res) => {

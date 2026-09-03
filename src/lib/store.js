@@ -24,6 +24,20 @@ export function createStore(name) {
       const docs = await col.find({}, { projection: { _id: 0 } }).sort({ receivedAt: 1 }).toArray();
       return docs;
     },
+    // Newest first, paginated — for admin list views on collections that can
+    // grow large (leads, cases) so the frontend never has to load everything
+    // in one shot.
+    async paginate({ page = 1, limit = 50, filter = {} } = {}) {
+      const col = await collection();
+      const total = await col.countDocuments(filter);
+      const items = await col
+        .find(filter, { projection: { _id: 0 } })
+        .sort({ receivedAt: -1 })
+        .skip((Math.max(1, page) - 1) * limit)
+        .limit(limit)
+        .toArray();
+      return { items, total, page: Math.max(1, page), pages: Math.max(1, Math.ceil(total / limit)) };
+    },
     async update(id, patch) {
       const col = await collection();
       const result = await col.findOneAndUpdate(

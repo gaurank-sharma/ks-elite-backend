@@ -20,9 +20,10 @@ router.post("/", async (req, res) => {
   res.status(201).json({ ok: true });
 });
 
-router.get("/", requirePermission("subscribers"), async (_req, res) => {
-  const all = await store.all();
-  res.json(all.slice().reverse());
+router.get("/", requirePermission("subscribers"), async (req, res) => {
+  const page = Math.max(1, Number(req.query.page) || 1);
+  const limit = Math.min(200, Math.max(1, Number(req.query.limit) || 50));
+  res.json(await store.paginate({ page, limit }));
 });
 
 router.delete("/:id", requirePermission("subscribers"), async (req, res) => {
